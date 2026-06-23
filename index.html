@@ -165,7 +165,7 @@
 
     <!-- Upload -->
     <div class="upload-area" onclick="document.getElementById('xlsxFile').click()">
-      <input type="file" id="xlsxFile" accept=".xlsx,.xls" onchange="loadExcel(this)"/>
+      <input type="file" id="xlsxFile" accept=".xlsx,.xls" onchange="checkPasswordAndLoad(this)"/>
       <div class="upload-icon">📂</div>
       <p>Upload file Excel danh sách bánh</p>
       <strong id="uploadLabel">Chọn file .xlsx</strong>
@@ -180,7 +180,7 @@
   <div class="main" id="mainArea">
     <div class="empty-state">
       <div class="icon">🥐</div>
-      <p>Chọn một loại bánh từ danh sách bên trái<br>để bắt đầu điền thông tin tiêu chuẩn</p>
+      <p>Chọn một loại bánh từ danh sách<br>để bắt đầu điền thông tin tiêu chuẩn</p>
     </div>
   </div>
 </div>
@@ -562,5 +562,17 @@ window.addEventListener('DOMContentLoaded', () => {
   loadCakeMaster();
 });
 </script>
+  function checkPasswordAndLoad(input) {
+
+  const password = prompt("Nhập mật khẩu để import danh sách bánh:");
+
+  if (password !== "Lan12121") {
+    alert("Sai mật khẩu!");
+    input.value = "";
+    return;
+  }
+
+  loadExcel(input);
+}
 </body>
 </html>
