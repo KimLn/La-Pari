@@ -561,18 +561,24 @@
 window.addEventListener('DOMContentLoaded', () => {
   loadCakeMaster();
 });
-</script>
   function checkPasswordAndLoad(input) {
-
-  const password = prompt("Nhập mật khẩu để import danh sách bánh:");
-
-  if (password !== "Lan12121") {
-    alert("Sai mật khẩu!");
-    input.value = "";
-    return;
+    const password = prompt('Nhập mật khẩu để upload file:');
+    if (password === 'Lan12121') {
+      loadExcel(input);
+    } else {
+      alert('Mật khẩu không đúng. Không thể upload file.');
+      input.value = ''; // Reset the input
+    }
   }
-
-  loadExcel(input);
-}
+<script>
+   function checkPasswordAndLoad(input) {
+    const password = prompt('Nhập mật khẩu để upload file:');
+    if (password === 'Lan12121') {
+      loadExcel(input);
+    } else {
+      alert('Mật khẩu không đúng. Không thể upload file.');
+      input.value = ''; // Reset the input
+    }
+  }
 </body>
 </html>
