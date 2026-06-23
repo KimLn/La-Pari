@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tiêu Chuẩn Xưởng Bánh – La Parisienne</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --cream:#F7F2EA;--warm-white:#FDFAF5;--gold:#B8892A;--gold-light:#D4A843;
+      --brown-dark:#3D2B1A;--brown-mid:#6B4C2A;--brown-light:#C4A882;
+      --green:#5A7A5A;--border:#D9C9A8;--muted:#7A6A55;
+    }
+    body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--brown-dark);min-height:100vh}
+
+    .header{background:var(--brown-dark);color:var(--cream);padding:18px 32px;display:flex;align-items:center;justify-content:space-between}
+    .header-brand{font-family:'Playfair Display',serif;font-size:20px;letter-spacing:2px}
+    .header-sub{font-size:11px;letter-spacing:3px;opacity:.6;text-transform:uppercase;margin-top:2px}
+
+    .layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 62px)}
+
+    /* SIDEBAR */
+    .sidebar{background:var(--warm-white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+    .sidebar-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+    .sidebar-title{font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+
+    /* Search */
+    .search-box{position:relative}
+    .search-box input{width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:4px;font-family:'Inter',sans-serif;font-size:13px;background:#fff;color:var(--brown-dark);outline:none;transition:border-color .2s}
+    .search-box input:focus{border-color:var(--gold)}
+    .search-box input::placeholder{color:var(--brown-light)}
+    .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--brown-light);pointer-events:none}
+
+    /* Category dropdown */
+    .cat-filter-wrap{position:relative}
+    .cat-filter-btn{width:100%;padding:8px 32px 8px 12px;border:1px solid var(--gold);border-radius:4px;font-family:'Inter',sans-serif;font-size:13px;background:#fff;color:var(--brown-dark);cursor:pointer;text-align:left;outline:none;transition:border-color .2s;font-weight:500}
+    .cat-filter-btn:hover{border-color:var(--gold-light)}
+    .cat-filter-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gold);font-size:12px;transition:transform .2s}
+    .cat-filter-arrow.open{transform:translateY(-50%) rotate(180deg)}
+    .cat-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--gold);border-radius:4px;box-shadow:0 4px 20px rgba(61,43,26,.15);z-index:100;max-height:320px;overflow-y:auto;display:none}
+    .cat-dropdown.show{display:block}
+    .cat-dropdown-item{padding:10px 14px;font-size:13px;cursor:pointer;color:var(--brown-dark);transition:background .15s;border-bottom:1px solid rgba(217,201,168,.3)}
+    .cat-dropdown-item:last-child{border-bottom:none}
+    .cat-dropdown-item:hover{background:rgba(184,137,42,.08)}
+    .cat-dropdown-item.selected{background:rgba(184,137,42,.12);font-weight:600;color:var(--gold)}
+
+    /* Upload area */
+    .upload-area{margin:10px 16px;border:1px dashed var(--brown-light);border-radius:4px;padding:12px;text-align:center;cursor:pointer;transition:all .2s}
+    .upload-area:hover{border-color:var(--gold);background:rgba(184,137,42,.04)}
+    .upload-area input{display:none}
+    .upload-icon{font-size:20px;margin-bottom:4px}
+    .upload-area p{font-size:11px;color:var(--muted)}
+    .upload-area strong{color:var(--gold);font-size:11px}
+
+    /* Cake list */
+    .cat-list{flex:1;overflow-y:auto;padding:6px 0}
+    .cat-group{}
+    .cat-label{padding:8px 16px 4px;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);background:var(--cream);position:sticky;top:0;z-index:1;border-bottom:1px solid rgba(217,201,168,.4)}
+    .cake-item{padding:9px 16px;font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;color:var(--brown-dark);line-height:1.4}
+    .cake-item:hover{background:rgba(184,137,42,.08);border-left-color:var(--gold-light)}
+    .cake-item.active{background:rgba(184,137,42,.15);border-left-color:var(--gold);font-weight:500}
+    .cake-item.saved::after{content:'✓';float:right;color:var(--green);font-size:11px;margin-top:2px}
+    .no-results{padding:20px 16px;font-size:13px;color:var(--muted);text-align:center;font-style:italic}
+    .list-count{padding:6px 16px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)}
+
+    /* MAIN */
+    .main{overflow-y:auto;padding:32px}
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:400px;color:var(--muted);text-align:center}
+    .empty-state .icon{font-size:48px;margin-bottom:16px;opacity:.4}
+    .empty-state p{font-size:14px;line-height:1.8}
+
+    /* Form */
+    .form-card{background:var(--warm-white);border:1px solid var(--border);border-radius:2px;overflow:hidden;max-width:900px;margin:0 auto;box-shadow:0 2px 20px rgba(61,43,26,.07)}
+    .form-card-header{background:var(--brown-dark);padding:20px 28px;display:flex;align-items:center;justify-content:space-between}
+    .form-card-header h2{font-family:'Playfair Display',serif;font-size:18px;color:var(--cream)}
+    .form-card-header .cat-badge{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+    .saved-badge{font-size:11px;padding:4px 10px;border-radius:2px;background:rgba(90,122,90,.3);color:#a8d5a8;letter-spacing:1px;display:none}
+    .saved-badge.show{display:block}
+
+    .two-col{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+    .section{padding:24px 28px}
+    .section:first-child{border-right:1px solid var(--border)}
+    .section-title{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+    .sensory-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+    .check-icon{width:20px;height:20px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+    .check-icon svg{width:10px;height:10px;stroke:#fff;stroke-width:2.5;fill:none}
+    .sensory-content{flex:1}
+    .sensory-label{font-size:11px;font-weight:600;color:var(--brown-dark);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+    .sensory-input{width:100%;font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-dark);background:transparent;border:none;border-bottom:1px dashed var(--brown-light);padding:4px 0;outline:none;resize:none;line-height:1.5;transition:border-color .2s}
+    .sensory-input:focus{border-bottom-color:var(--gold)}
+    .sensory-input::placeholder{color:var(--brown-light);font-style:italic}
+
+    .process-section{padding:24px 28px}
+    .step-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+    .step-num{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--gold);min-width:18px;padding-top:5px}
+    .step-input{flex:1;font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-dark);background:transparent;border:none;border-bottom:1px dashed var(--brown-light);padding:4px 0;outline:none;resize:none;line-height:1.5;min-height:28px;transition:border-color .2s}
+    .step-input:focus{border-bottom-color:var(--gold)}
+    .step-input::placeholder{color:var(--brown-light);font-style:italic}
+    .step-del{background:none;border:none;cursor:pointer;color:var(--brown-light);font-size:16px;padding:4px;transition:color .2s;margin-top:2px}
+    .step-del:hover{color:#c0392b}
+    .add-step-btn{margin-top:12px;background:none;border:1px dashed var(--brown-light);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;padding:6px 14px;cursor:pointer;border-radius:2px;transition:all .2s}
+    .add-step-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+    .note-row{padding:12px 28px;background:var(--cream);border-top:1px solid var(--border)}
+    .note-input{width:100%;font-family:'Inter',sans-serif;font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;border-bottom:1px dashed var(--brown-light);outline:none;padding:4px 0}
+    .note-input:focus{border-bottom-color:var(--gold)}
+
+    .form-footer{padding:14px 28px;background:var(--cream);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .footer-brand{font-family:'Playfair Display',serif;font-size:11px;color:var(--brown-light);letter-spacing:1px}
+    .footer-actions{display:flex;gap:10px}
+    .btn{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:10px 22px;border:none;cursor:pointer;border-radius:2px;transition:all .2s}
+    .btn-save{background:var(--brown-dark);color:var(--cream)}
+    .btn-save:hover{background:var(--brown-mid)}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed}
+    .btn-clear{background:transparent;color:var(--brown-mid);border:1px solid var(--brown-light)}
+    .btn-clear:hover{border-color:var(--gold);color:var(--gold)}
+
+    .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:4px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.success{background:#2E7D32;color:#fff}
+    .toast.error{background:#c0392b;color:#fff}
+
+    @media(max-width:768px){
+      .layout{grid-template-columns:1fr}
+      .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:340px}
+      .two-col{grid-template-columns:1fr}
+      .section:first-child{border-right:none;border-bottom:1px solid var(--border)}
+      .main{padding:16px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-brand">La Parisienne</div>
+    <div class="header-sub">Tiêu chuẩn xưởng bánh</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Danh sách bánh</div>
+
+      <!-- Search -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên bánh..." oninput="applyFilter()"/>
+      </div>
+
+      <!-- Category dropdown filter -->
+      <div class="cat-filter-wrap" id="catFilterWrap">
+        <button class="cat-filter-btn" id="catFilterBtn" onclick="toggleDropdown()">
+          All categories
+        </button>
+        <span class="cat-filter-arrow" id="catArrow">▾</span>
+        <div class="cat-dropdown" id="catDropdown"></div>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="upload-area" onclick="document.getElementById('xlsxFile').click()">
+      <input type="file" id="xlsxFile" accept=".xlsx,.xls" onchange="loadExcel(this)"/>
+      <div class="upload-icon">📂</div>
+      <p>Upload file Excel danh sách bánh</p>
+      <strong id="uploadLabel">Chọn file .xlsx</strong>
+    </div>
+
+    <div class="list-count" id="listCount" style="display:none"></div>
+    <div class="cat-list" id="catList">
+      <div class="no-results">Upload file Excel để xem danh sách bánh</div>
+    </div>
+  </div>
+
+  <div class="main" id="mainArea">
+    <div class="empty-state">
+      <div class="icon">🥐</div>
+      <p>Chọn một loại bánh từ danh sách bên trái<br>để bắt đầu điền thông tin tiêu chuẩn</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPA_URL = 'https://xhhiojcokpahmwrcsydl.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhoaGlvamNva3BhaG13cmNzeWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTU0NzMsImV4cCI6MjA5Nzc3MTQ3M30.40vERCzcSuHWeuATskbcpKDsGplLvC3iWrea3fdYZqg';
+  const { createClient } = supabase;
+  const db = createClient(SUPA_URL, SUPA_KEY);
+
+  let allCakes = {};
+  async function loadCakeMaster() {
+
+  const { data, error } = await db
+    .from('cake_master')
+    .select('*')
+    .order('category')
+    .order('name');
+
+  if (error || !data?.length) {
+    return;
+  }
+
+  allCakes = {};
+
+  data.forEach(row => {
+
+    if (!allCakes[row.category]) {
+      allCakes[row.category] = [];
+    }
+
+    allCakes[row.category].push(row.name);
+
+  });
+
+  buildDropdown();
+  applyFilter();
+
+  document.getElementById('uploadLabel').textContent =
+      `${data.length} bánh đã lưu`;
+}
+  let selectedCat = 'All categories';
+  let currentCake = null;
+  let stepCount = 0;
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', e => {
+    if (!document.getElementById('catFilterWrap').contains(e.target)) closeDropdown();
+  });
+
+  function toggleDropdown() {
+    const dd = document.getElementById('catDropdown');
+    const arrow = document.getElementById('catArrow');
+    const isOpen = dd.classList.contains('show');
+    if (isOpen) { closeDropdown(); } else {
+      dd.classList.add('show');
+      arrow.classList.add('open');
+    }
+  }
+
+  function closeDropdown() {
+    document.getElementById('catDropdown').classList.remove('show');
+    document.getElementById('catArrow').classList.remove('open');
+  }
+
+  function buildDropdown() {
+    const cats = ['All categories', ...Object.keys(allCakes).sort()];
+    const dd = document.getElementById('catDropdown');
+    dd.innerHTML = cats.map(c => `
+      <div class="cat-dropdown-item ${c === selectedCat ? 'selected' : ''}" onclick="selectCategory('${esc(c)}')">${c}</div>
+    `).join('');
+  }
+
+  function selectCategory(cat) {
+    selectedCat = cat;
+    document.getElementById('catFilterBtn').textContent = cat;
+    buildDropdown();
+    closeDropdown();
+    applyFilter();
+  }
+
+  function applyFilter() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    let filtered = {};
+
+    Object.keys(allCakes).forEach(cat => {
+      if (selectedCat !== 'All categories' && cat !== selectedCat) return;
+      const names = allCakes[cat].filter(n => !q || n.toLowerCase().includes(q) || cat.toLowerCase().includes(q));
+      if (names.length) filtered[cat] = names;
+    });
+
+    renderList(filtered);
+  }
+
+  function loadExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('uploadLabel').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      allCakes = {};
+      rows.forEach(row => {
+        const cat = (row[0]||'').toString().trim();
+        const name = (row[1]||'').toString().trim().replace(/\n/g,'').trim();
+        if (!cat || !name) return;
+        if (cat.startsWith('Danh mục') || cat.startsWith('⚠') || cat.startsWith('DANH')) return;
+        if (!allCakes[cat]) allCakes[cat] = [];
+        if (!allCakes[cat].includes(name)) allCakes[cat].push(name);
+      });
+      buildDropdown();
+      applyFilter();
+      saveCakeMaster();
+    };
+    reader.readAsBinaryString(file);
+  }
+  async function saveCakeMaster() {
+
+  const records = [];
+
+  Object.entries(allCakes).forEach(([cat, names]) => {
+
+    names.forEach(name => {
+
+      records.push({
+        category: cat,
+        name: name
+      });
+
+    });
+
+  });
+
+  await db
+    .from('cake_master')
+    .delete()
+    .neq('id', 0);
+
+  const { error } = await db
+    .from('cake_master')
+    .insert(records);
+
+  if (error) {
+    console.error(error);
+    showToast('Lỗi lưu danh sách bánh','error');
+    return;
+  }
+
+  showToast('Đã lưu danh sách bánh','success');
+}
+
+  function renderList(data) {
+    const el = document.getElementById('catList');
+    const countEl = document.getElementById('listCount');
+    const cats = Object.keys(data).sort();
+    const total = cats.reduce((s, c) => s + data[c].length, 0);
+
+    if (!cats.length) {
+      el.innerHTML = '<div class="no-results">Không tìm thấy kết quả</div>';
+      countEl.style.display = 'none';
+      return;
+    }
+
+    countEl.style.display = 'block';
+    countEl.textContent = `${total} sản phẩm`;
+
+    el.innerHTML = cats.map(cat => `
+      <div class="cat-group">
+        <div class="cat-label">${cat} (${data[cat].length})</div>
+        ${data[cat].map(name => `
+          <div class="cake-item" onclick="selectCake('${esc(cat)}','${esc(name)}')" id="item-${esc(cat+name)}">${name}</div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
+  function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+  async function selectCake(cat, name) {
+    document.querySelectorAll('.cake-item').forEach(el => el.classList.remove('active'));
+    const itemId = 'item-' + esc(cat + name);
+    const el = document.getElementById(itemId);
+    if (el) el.classList.add('active');
+    currentCake = {cat, name};
+    const existing = await loadFromDB(cat, name);
+    renderForm(cat, name, existing);
+  }
+
+  async function loadFromDB(cat, name) {
+    try {
+      const { data } = await db.from('bakery_standards')
+        .select('*').eq('banh_category', cat).eq('banh_name', name)
+        .order('created_at', {ascending:false}).limit(1);
+      return data && data.length ? data[0] : null;
+    } catch(e) { return null; }
+  }
+
+  function renderForm(cat, name, existing) {
+    const e = existing || {};
+    const steps = (e.quy_trinh && e.quy_trinh.length) ? e.quy_trinh : ['','','','',''];
+    stepCount = steps.length;
+    document.getElementById('mainArea').innerHTML = `
+      <div class="form-card">
+        <div class="form-card-header">
+          <div>
+            <div class="cat-badge">${cat}</div>
+            <h2>${name}</h2>
+          </div>
+          <div class="saved-badge ${existing ? 'show' : ''}" id="savedBadge">✓ Đã lưu</div>
+        </div>
+        <div class="two-col">
+          <div class="section">
+            <div class="section-title">Tiêu Chuẩn Cảm Quan (Sensory Check)</div>
+            ${sRow('Hình dáng','hinh_dang',e.hinh_dang||'')}
+            ${sRow('Màu sắc vỏ','mau_sac',e.mau_sac||'')}
+            ${sRow('Trang trí mặt','trang_tri',e.trang_tri||'')}
+            ${sRow('Cấu trúc ruột','cau_truc',e.cau_truc||'')}
+          </div>
+          <div class="section">
+            <div class="section-title">Quy Trình Tạo Hình &amp; Thao Tác Chuẩn</div>
+            <div id="stepList">${steps.map((s,i) => stRow(i+1,s)).join('')}</div>
+            <button class="add-step-btn" onclick="addStep()">+ Thêm bước</button>
+          </div>
+        </div>
+        <div class="note-row">
+          <input class="note-input" id="ghi_chu" placeholder="* LƯU Ý BẮT BUỘC: Ghi chú thêm..." value="${(e.ghi_chu||'').replace(/"/g,'&quot;')}"/>
+        </div>
+        <div class="form-footer">
+          <div class="footer-brand">La Parisienne · Tiêu chuẩn xưởng bánh</div>
+          <div class="footer-actions">
+            <button class="btn btn-clear" onclick="clearForm()">Xóa trắng</button>
+            <button class="btn btn-save" id="saveBtn" onclick="saveForm()">Lưu</button>
+          </div>
+        </div>
+      </div>`;
+    document.querySelectorAll('textarea').forEach(ta => {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+      ta.addEventListener('input', () => { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+    });
+  }
+
+  function sRow(label, id, val) {
+    return `<div class="sensory-row">
+      <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
+      <div class="sensory-content">
+        <div class="sensory-label">${label}:</div>
+        <textarea class="sensory-input" id="${id}" rows="2" placeholder="Nhập tiêu chuẩn...">${val}</textarea>
+      </div></div>`;
+  }
+
+  function stRow(num, val) {
+    return `<div class="step-row" data-num="${num}">
+      <span class="step-num">${num}.</span>
+      <textarea class="step-input" rows="1" placeholder="Nhập bước ${num}...">${val}</textarea>
+      <button class="step-del" onclick="removeStep(this)">×</button>
+    </div>`;
+  }
+
+  function addStep() {
+    stepCount++;
+    const div = document.createElement('div');
+    div.className = 'step-row'; div.dataset.num = stepCount;
+    div.innerHTML = `<span class="step-num">${stepCount}.</span>
+      <textarea class="step-input" rows="1" placeholder="Nhập bước ${stepCount}..."></textarea>
+      <button class="step-del" onclick="removeStep(this)">×</button>`;
+    document.getElementById('stepList').appendChild(div);
+    const ta = div.querySelector('textarea');
+    ta.addEventListener('input', () => { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+    ta.focus(); renumber();
+  }
+
+  function removeStep(btn) { btn.closest('.step-row').remove(); renumber(); }
+
+  function renumber() {
+    document.querySelectorAll('#stepList .step-row').forEach((row,i) => {
+      row.querySelector('.step-num').textContent = (i+1)+'.';
+      row.querySelector('textarea').placeholder = `Nhập bước ${i+1}...`;
+    });
+    stepCount = document.querySelectorAll('#stepList .step-row').length;
+  }
+
+  function clearForm() {
+    if (!confirm('Xóa toàn bộ nội dung đã điền?')) return;
+    document.querySelectorAll('.sensory-input,.step-input').forEach(el => el.value='');
+    document.getElementById('ghi_chu').value='';
+  }
+
+  async function saveForm() {
+  if (!currentCake) return;
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Đang lưu...';
+
+  const steps = [...document.querySelectorAll('.step-input')]
+    .map(el => el.value.trim());
+
+  const payload = {
+    banh_category: currentCake.cat,
+    banh_name: currentCake.name,
+    hinh_dang: document.getElementById('hinh_dang').value,
+    mau_sac: document.getElementById('mau_sac').value,
+    trang_tri: document.getElementById('trang_tri').value,
+    cau_truc: document.getElementById('cau_truc').value,
+    quy_trinh: steps,
+    ghi_chu: document.getElementById('ghi_chu').value,
+  };
+
+  try {
+
+    const { data: ex } = await db
+      .from('bakery_standards')
+      .select('id')
+      .eq('banh_category', currentCake.cat)
+      .eq('banh_name', currentCake.name)
+      .limit(1);
+
+    if (ex && ex.length) {
+
+      const { error } = await db
+        .from('bakery_standards')
+        .update(payload)
+        .eq('id', ex[0].id);
+
+      if (error) {
+        console.error(error);
+        showToast(error.message, 'error');
+        return;
+      }
+
+    } else {
+
+      const { error } = await db
+        .from('bakery_standards')
+        .insert(payload);
+
+      if (error) {
+        console.error(error);
+        showToast(error.message, 'error');
+        return;
+      }
+
+    }
+
+    showToast('Đã lưu thành công! ✓', 'success');
+
+    document.getElementById('savedBadge').classList.add('show');
+
+    const itemEl = document.getElementById(
+      'item-' + esc(currentCake.cat + currentCake.name)
+    );
+
+    if (itemEl) itemEl.classList.add('saved');
+
+  } catch (err) {
+
+    console.error(err);
+    showToast('Lỗi: ' + err.message, 'error');
+
+  } finally {
+
+    btn.disabled = false;
+    btn.textContent = 'Lưu';
+
+  }
+}
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent=msg; t.className=`toast ${type} show`;
+    setTimeout(()=>t.classList.remove('show'),3000);
+  }
+window.addEventListener('DOMContentLoaded', () => {
+  loadCakeMaster();
+});
+</script>
+</body>
+</html>
