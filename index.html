@@ -561,15 +561,6 @@
 window.addEventListener('DOMContentLoaded', () => {
   loadCakeMaster();
 });
-  function checkPasswordAndLoad(input) {
-    const password = prompt('Nhập mật khẩu để upload file:');
-    if (password === 'Lan12121') {
-      loadExcel(input);
-    } else {
-      alert('Mật khẩu không đúng. Không thể upload file.');
-      input.value = ''; // Reset the input
-    }
-  }
 </script>
 </body>
 </html>
