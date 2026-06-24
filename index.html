@@ -721,10 +721,9 @@
 
     document.getElementById('savedBadge').classList.add('show');
 
-    const itemEl = document.getElementById(
-      'item-' + esc(currentCake.cat + currentCake.name)
-    );
-
+    // Thay const thành let hoặc đổi tên biến
+    let savedItemEl = document.getElementById('item-' + esc(currentCake.cat + currentCake.name));
+    if (savedItemEl) savedItemEl.classList.add('saved');
     if (itemEl) itemEl.classList.add('saved');
 
   } catch (err) {
