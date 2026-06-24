@@ -9,6 +9,25 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
+   .auth-overlay{position:fixed;inset:0;background:var(--brown-dark);z-index:9999;display:flex;align-items:center;justify-content:center}
+   .auth-box{background:var(--warm-white);border:1px solid var(--border);border-radius:4px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+   .auth-logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--brown-dark);text-align:center;margin-bottom:4px}
+   .auth-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:28px}
+   .auth-field{margin-bottom:16px}
+   .auth-field label{display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+   .auth-field input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:2px;font-family:'Inter',sans-serif;font-size:14px;outline:none;transition:border-color .2s;background:#fff}
+   .auth-field input:focus{border-color:var(--gold)}
+   .auth-btn{width:100%;padding:12px;background:var(--brown-dark);color:var(--cream);border:none;border-radius:2px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:background .2s}
+   .auth-btn:hover{background:var(--brown-mid)}
+   .auth-btn:disabled{opacity:.5;cursor:not-allowed}
+   .auth-error{font-size:12px;color:#c0392b;text-align:center;margin-top:10px;min-height:18px}
+   .auth-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--muted)}
+   .auth-footer a{color:var(--gold);cursor:pointer;text-decoration:none}
+   .auth-footer a:hover{text-decoration:underline}
+   .user-info{display:flex;align-items:center;gap:10px}
+   .user-name{font-size:12px;color:rgba(255,255,255,.7);letter-spacing:1px}
+   .btn-logout{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;padding:7px 14px;border:1px solid rgba(255,255,255,.25);border-radius:2px;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;transition:all .2s}
+   .btn-logout:hover{background:rgba(255,255,255,.1);color:#fff}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
       --cream:#F7F2EA;--warm-white:#FDFAF5;--gold:#B8892A;--gold-light:#D4A843;
@@ -125,25 +144,87 @@
     .toast.success{background:#2E7D32;color:#fff}
     .toast.error{background:#c0392b;color:#fff}
 
-    @media(max-width:768px){
-      .layout{grid-template-columns:1fr}
-      .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:340px}
-      .two-col{grid-template-columns:1fr}
-      .section:first-child{border-right:none;border-bottom:1px solid var(--border)}
-      .main{padding:16px}
-    }
+   @media(max-width:768px){
+     .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+     .sidebar{border-right:none;border-bottom:1px solid var(--border);height:45vh;min-height:280px;max-height:45vh}
+     .sidebar-header{padding:10px 12px;gap:6px}
+     .cat-filter-btn{font-size:14px;padding:10px 32px 10px 12px}
+     .search-box input{font-size:14px;padding:10px 12px 10px 36px}
+     .cake-item{padding:12px 16px;font-size:14px;min-height:44px;display:flex;align-items:center}
+     .cat-label{font-size:11px;padding:10px 16px 6px}
+     .upload-area{margin:8px 12px;padding:10px}
+     .main{padding:12px;height:55vh;overflow-y:auto}
+     .two-col{grid-template-columns:1fr}
+     .section:first-child{border-right:none;border-bottom:1px solid var(--border)}
+     .section,.process-section{padding:16px}
+     .header{padding:14px 16px}
+     .header-brand{font-size:17px}
+     .btn-export{font-size:10px;padding:7px 12px}
+     .form-footer{flex-direction:column;gap:10px;align-items:flex-start}
+   }
       .btn-export{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:9px 18px;border:1px solid rgba(255,255,255,.35);border-radius:2px;background:transparent;color:var(--cream);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
       .btn-export:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.6)}
       .btn-export:disabled{opacity:.4;cursor:not-allowed}
   </style>
 </head>
 <body>
+  <!-- Auth overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">La Parisienne</div>
+    <div class="auth-sub">Tiêu chuẩn xưởng bánh</div>
+
+    <!-- Form đăng nhập -->
+    <div id="loginForm">
+      <div class="auth-field">
+        <label>Tên đăng nhập</label>
+        <input type="text" id="loginUsername" placeholder="Nhập username..."/>
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="loginPassword" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="auth-btn" onclick="doLogin()" id="loginBtn">Đăng nhập</button>
+      <div class="auth-error" id="loginError"></div>
+    </div>
+
+    <!-- Form tạo tài khoản (admin only) -->
+    <div id="registerForm" style="display:none">
+      <div class="auth-field">
+        <label>Tên đăng nhập</label>
+        <input type="text" id="regUsername" placeholder="Nhập username..."/>
+      </div>
+      <div class="auth-field">
+        <label>Tên hiển thị</label>
+        <input type="text" id="regDisplayName" placeholder="Vd: Nguyễn Văn A..."/>
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="regPassword" placeholder="Nhập mật khẩu..."/>
+      </div>
+      <div class="auth-field">
+        <label>Vai trò</label>
+        <select id="regRole" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:2px;font-family:'Inter',sans-serif;font-size:14px;outline:none;background:#fff">
+          <option value="staff">Staff</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="auth-btn" onclick="doRegister()" id="registerBtn">Tạo tài khoản</button>
+      <div class="auth-error" id="registerError"></div>
+      <div class="auth-footer"><a onclick="showLogin()">← Quay lại đăng nhập</a></div>
+    </div>
+  </div>
+</div>
 
 <div class="header">
   <buttonclass="btn-export" id="exportBtn" onclick="exportExcel()">⬇ Xuất Excel</button>
   <div>
     <div class="header-brand">La Parisienne</div>
     <div class="header-sub">Tiêu chuẩn xưởng bánh</div>
+  </div>
+  <div class="user-info">
+   <span class="user-name" id="userNameDisplay"></span>
+   <button class="btn-logout" onclick="doLogout()">Đăng xuất</button>
   </div>
 </div>
 
@@ -193,6 +274,80 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  let currentUser = null;
+
+  async function checkAuth() {
+    const saved = sessionStorage.getItem('lp_user');
+    if (saved) {
+     currentUser = JSON.parse(saved);
+     applyRole();
+     document.getElementById('authOverlay').style.display = 'none';
+     document.getElementById('userNameDisplay').textContent = currentUser.display_name || currentUser.username;
+    }
+  }
+
+   async function doLogin() {
+     const btn = document.getElementById('loginBtn');
+     const username = document.getElementById('loginUsername').value.trim();
+     const password = document.getElementById('loginPassword').value;
+     const errEl = document.getElementById('loginError');
+     errEl.textContent = '';
+     if (!username || !password) { errEl.textContent = 'Vui lòng nhập đầy đủ thông tin'; return; }
+     btn.disabled = true; btn.textContent = 'Đang kiểm tra...';
+     try {
+       const { data, error } = await db.from('users').select('*').eq('username', username).eq('password', password).limit(1);
+       if (error) throw error;
+       if (!data || !data.length) { errEl.textContent = 'Tên đăng nhập hoặc mật khẩu không đúng'; return; }
+       currentUser = data[0];
+       sessionStorage.setItem('lp_user', JSON.stringify(currentUser));
+       document.getElementById('authOverlay').style.display = 'none';
+       document.getElementById('userNameDisplay').textContent = currentUser.display_name || currentUser.username;
+       applyRole();
+     } catch(e) { errEl.textContent = 'Lỗi: ' + e.message; }
+     btn.disabled = false; btn.textContent = 'Đăng nhập';
+   }
+
+   function applyRole() {
+     const isAdmin = currentUser && currentUser.role === 'admin';
+     // Ẩn/hiện nút xuất excel và upload
+     document.getElementById('exportBtn').style.display = isAdmin ? 'flex' : 'none';
+     const uploadArea = document.querySelector('.upload-area');
+     if (uploadArea) uploadArea.style.display = isAdmin ? 'block' : 'none';
+   }
+
+   async function doRegister() {
+     if (!currentUser || currentUser.role !== 'admin') return;
+     const btn = document.getElementById('registerBtn');
+     const username = document.getElementById('regUsername').value.trim();
+     const displayName = document.getElementById('regDisplayName').value.trim();
+     const password = document.getElementById('regPassword').value;
+     const role = document.getElementById('regRole').value;
+     const errEl = document.getElementById('registerError');
+     errEl.textContent = '';
+     if (!username || !password) { errEl.textContent = 'Vui lòng nhập đầy đủ thông tin'; return; }
+     btn.disabled = true; btn.textContent = 'Đang tạo...';
+     try {
+       const { error } = await db.from('users').insert({ username, password, role, display_name: displayName });
+       if (error) throw error;
+       showToast('Tạo tài khoản thành công! ✓', 'success');
+       showLogin();
+     } catch(e) { errEl.textContent = 'Lỗi: ' + (e.message.includes('unique') ? 'Username đã tồn tại' : e.message); }
+     btn.disabled = false; btn.textContent = 'Tạo tài khoản';
+   }
+
+   function doLogout() {
+     sessionStorage.removeItem('lp_user');
+     currentUser = null;
+     location.reload();
+   }
+
+   function showLogin() {
+     document.getElementById('loginForm').style.display = 'block';
+     document.getElementById('registerForm').style.display = 'none';
+   }
+
+   // Gọi checkAuth khi trang load
+   checkAuth();
   const SUPA_URL = 'https://xhhiojcokpahmwrcsydl.supabase.co';
   const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhoaGlvamNva3BhaG13cmNzeWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTU0NzMsImV4cCI6MjA5Nzc3MTQ3M30.40vERCzcSuHWeuATskbcpKDsGplLvC3iWrea3fdYZqg';
   const { createClient } = supabase;
