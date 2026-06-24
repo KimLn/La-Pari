@@ -9,6 +9,30 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
+   .btn-back{display:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;padding:8px 16px;background:var(--cream);color:var(--brown-dark);border:1px solid var(--border);border-radius:2px;cursor:pointer;margin-bottom:14px}
+   .btn-back:hover{border-color:var(--gold);color:var(--gold)}
+   @media(max-width:768px){
+     .layout{grid-template-columns:1fr;grid-template-rows:1fr}
+     .sidebar{border-right:none;border-bottom:none;height:100vh;max-height:none;display:flex;flex-direction:column}
+     .sidebar.hidden{display:none}
+     .main{display:none;padding:14px;min-height:100vh}
+     .main.visible{display:block}
+     .btn-back{display:block}
+     .cat-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+     .cake-item{padding:14px 16px;font-size:15px;min-height:50px;display:flex;align-items:center;border-bottom:1px solid rgba(217,201,168,.3)}
+     .cat-label{font-size:11px;padding:10px 16px 6px;top:0}
+     .search-box input{font-size:15px;padding:11px 12px 11px 36px}
+     .cat-filter-btn{font-size:14px;padding:11px 32px 11px 12px}
+     .upload-area{margin:8px 12px;padding:10px}
+     .header{padding:14px 16px}
+     .header-brand{font-size:17px}
+     .two-col{grid-template-columns:1fr}
+     .section:first-child{border-right:none;border-bottom:1px solid var(--border)}
+     .section{padding:16px}
+     .form-footer{flex-direction:column;gap:10px;align-items:stretch}
+     .footer-actions{justify-content:stretch}
+     .footer-actions .btn{flex:1;text-align:center}
+   }
    .cake-item.saved{background:rgba(90,122,90,.15);border-left-color:var(--green)}
    .cake-item.saved::after{content:'✓';float:right;color:var(--green);font-size:11px;margin-top:2px}
    .auth-overlay{position:fixed;inset:0;background:var(--brown-dark);z-index:9999;display:flex;align-items:center;justify-content:center}
@@ -271,11 +295,14 @@
   </div>
 
   <div class="main" id="mainArea">
+    <button class="btn-back" onclick="goBackToList()">← Quay lại danh sách</button>
     <div class="empty-state">
       <div class="icon">🥐</div>
       <p>Chọn một loại bánh từ danh sách<br>để bắt đầu điền thông tin tiêu chuẩn</p>
     </div>
+
   </div>
+  
 </div>
 
 <div class="toast" id="toast"></div>
@@ -346,6 +373,13 @@
      sessionStorage.removeItem('lp_user');
      currentUser = null;
      location.reload();
+   }
+
+   function isMobile() { return window.innerWidth <= 768; }
+
+   function goBackToList() {
+    document.querySelector('.sidebar').classList.remove('hidden');
+    document.getElementById('mainArea').classList.remove('visible');
    }
 
    function showLogin() {
@@ -539,6 +573,10 @@
     currentCake = {cat, name};
     const existing = await loadFromDB(cat, name);
     renderForm(cat, name, existing);
+    if (isMobile()) {
+      document.querySelector('.sidebar').classList.add('hidden');
+      document.getElementById('mainArea').classList.add('visible');
+    }
   }
 
   async function loadFromDB(cat, name) {
