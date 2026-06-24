@@ -305,7 +305,8 @@
   </div>
 
   <div class="main" id="mainArea">
-    <button class="btn-back" id="backBtn" onclick="goBackToList()">← Quay lại danh sách</button>
+    <div class="main" id="mainArea">
+      <button class="btn-back" id="backBtn" onclick="goBackToList()">← Quay lại danh sách</button>
     <div class="empty-state">
       <div class="icon">🥐</div>
       <p>Chọn một loại bánh từ danh sách<br>để bắt đầu điền thông tin tiêu chuẩn</p>
@@ -584,7 +585,7 @@
     currentCake = {cat, name};
     const existing = await loadFromDB(cat, name);
     renderForm(cat, name, existing);
-    
+
     if (isMobile()) {
       document.querySelector('.sidebar').classList.add('hidden');
       document.getElementById('mainArea').classList.add('visible');
