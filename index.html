@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tiêu Chuẩn Xưởng Bánh – La Parisienne</title>
@@ -131,11 +132,15 @@
       .section:first-child{border-right:none;border-bottom:1px solid var(--border)}
       .main{padding:16px}
     }
+      .btn-export{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:9px 18px;border:1px solid rgba(255,255,255,.35);border-radius:2px;background:transparent;color:var(--cream);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+      .btn-export:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.6)}
+      .btn-export:disabled{opacity:.4;cursor:not-allowed}
   </style>
 </head>
 <body>
 
 <div class="header">
+  <buttonclass="btn-export" id="exportBtn" onclick="exportExcel()">⬇ Xuất Excel</button>
   <div>
     <div class="header-brand">La Parisienne</div>
     <div class="header-sub">Tiêu chuẩn xưởng bánh</div>
@@ -561,6 +566,80 @@
 window.addEventListener('DOMContentLoaded', () => {
   loadCakeMaster();
 });
+async function exportExcel() {
+  const btn = document.getElementById('exportBtn');
+  btn.disabled = true; btn.textContent = '⏳ Đang xuất...';
+  try {
+    const { data, error } = await db.from('bakery_standards').select('*').order('banh_category').order('banh_name');
+    if (error) throw error;
+    if (!data || !data.length) { showToast('Chưa có dữ liệu để xuất!', 'error'); btn.disabled=false; btn.textContent='⬇ Xuất Excel'; return; }
+
+    const wb = XLSX.utils.book_new();
+
+    // Nhóm theo danh mục
+    const cats = {};
+    data.forEach(r => {
+      const c = r.banh_category || 'Khác';
+      if (!cats[c]) cats[c] = [];
+      cats[c].push(r);
+    });
+
+    // Sheet tổng hợp
+    const allRows = [];
+    allRows.push(['TIÊU CHUẨN XƯỞNG BÁNH – LA PARISIENNE']);
+    allRows.push(['Xuất ngày: ' + new Date().toLocaleDateString('vi-VN')]);
+    allRows.push(['']);
+    Object.keys(cats).sort().forEach(cat => {
+      allRows.push([cat.toUpperCase()]);
+      allRows.push(['Tên bánh','Hình dáng','Màu sắc vỏ','Trang trí mặt','Cấu trúc ruột','Quy trình','Ghi chú']);
+      cats[cat].forEach(r => {
+        const steps = (r.quy_trinh||[]).filter(s=>s).map((s,i)=>`${i+1}. ${s}`).join('\n');
+        allRows.push([r.banh_name||'',r.hinh_dang||'',r.mau_sac||'',r.trang_tri||'',r.cau_truc||'',steps,r.ghi_chu||'']);
+      });
+      allRows.push(['']);
+    });
+    const wsAll = XLSX.utils.aoa_to_sheet(allRows);
+    wsAll['!cols'] = [{wch:35},{wch:30},{wch:28},{wch:28},{wch:28},{wch:45},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, wsAll, 'Tổng hợp');
+
+    // Sheet riêng từng danh mục
+    Object.keys(cats).sort().forEach(cat => {
+      const rows = [];
+      rows.push([cat.toUpperCase()]);
+      rows.push(['Xuất ngày: ' + new Date().toLocaleDateString('vi-VN')]);
+      rows.push(['']);
+      cats[cat].forEach((r, idx) => {
+        rows.push([`${idx+1}. ${r.banh_name||''}`]);
+        rows.push(['']);
+        rows.push(['TIÊU CHUẨN CẢM QUAN']);
+        rows.push(['Hình dáng:', r.hinh_dang||'']);
+        rows.push(['Màu sắc vỏ:', r.mau_sac||'']);
+        rows.push(['Trang trí mặt:', r.trang_tri||'']);
+        rows.push(['Cấu trúc ruột:', r.cau_truc||'']);
+        rows.push(['']);
+        rows.push(['QUY TRÌNH TẠO HÌNH & THAO TÁC CHUẨN']);
+        const steps = (r.quy_trinh||[]).filter(s=>s);
+        if (steps.length) { steps.forEach((s,i) => rows.push([`${i+1}.`, s])); }
+        else { rows.push(['(Chưa có dữ liệu)']); }
+        if (r.ghi_chu) { rows.push(['']); rows.push(['* LƯU Ý:', r.ghi_chu]); }
+        rows.push(['']);
+        rows.push(['─────────────────────────────────']);
+        rows.push(['']);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:30},{wch:60}];
+      const sheetName = cat.replace(/[:\\\/\?\*\[\]]/g,'').substring(0,31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    const date = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `LP_TieuChuan_${date}.xlsx`);
+    showToast(`Đã xuất ${data.length} sản phẩm thành công! ✓`, 'success');
+  } catch(e) {
+    showToast('Lỗi khi xuất: ' + e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = '⬇ Xuất Excel';
+}
 </script>
 </body>
 </html>
