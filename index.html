@@ -12,6 +12,9 @@
    .btn-back{display:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;padding:8px 16px;background:var(--cream);color:var(--brown-dark);border:1px solid var(--border);border-radius:2px;cursor:pointer;margin-bottom:14px}
    .btn-back:hover{border-color:var(--gold);color:var(--gold)}
    @media(max-width:768px){
+      .sidebar.hidden { display: none; }
+      .main { display: none; }
+      .main.visible { display: block; }
       .header{padding:12px 14px;flex-wrap:nowrap}
       .header-brand{font-size:15px;letter-spacing:1px}
       .header-sub{font-size:9px;letter-spacing:2px}
@@ -581,12 +584,11 @@
     currentCake = {cat, name};
     const existing = await loadFromDB(cat, name);
     renderForm(cat, name, existing);
-    if (isMobile()) {
-      document.getElementById('backBtn').style.display = 'block';
-    }
+    
     if (isMobile()) {
       document.querySelector('.sidebar').classList.add('hidden');
       document.getElementById('mainArea').classList.add('visible');
+      document.getElementById('backBtn').style.display = 'block';
     }
   }
 
