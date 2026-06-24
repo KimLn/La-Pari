@@ -9,6 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
+   .cake-item.saved{background:rgba(90,122,90,.15);border-left-color:var(--green)}
+   .cake-item.saved::after{content:'✓';float:right;color:var(--green);font-size:11px;margin-top:2px}
    .auth-overlay{position:fixed;inset:0;background:var(--brown-dark);z-index:9999;display:flex;align-items:center;justify-content:center}
    .auth-box{background:var(--warm-white);border:1px solid var(--border);border-radius:4px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.3)}
    .auth-logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--brown-dark);text-align:center;margin-bottom:4px}
@@ -440,6 +442,7 @@
     });
 
     renderList(filtered);
+    setTimeout(markSavedItems, 100);
   }
 
   function loadExcel(input) {
@@ -632,10 +635,27 @@
     stepCount = document.querySelectorAll('#stepList .step-row').length;
   }
 
-  function clearForm() {
+  async function markSavedItems() {
+   try {
+     const { data } = await db.from('bakery_standards').select('banh_category, banh_name');
+     if (!data) return;
+     data.forEach(r => {
+      const itemEl = document.getElementById('item-' + esc(r.banh_category + r.banh_name));
+      if (itemEl) itemEl.classList.add('saved');
+    });
+   } catch(e) {}
+  }
+
+  async function clearForm() {
     if (!confirm('Xóa toàn bộ nội dung đã điền?')) return;
     document.querySelectorAll('.sensory-input,.step-input').forEach(el => el.value='');
     document.getElementById('ghi_chu').value='';
+    const itemEl = document.getElementById('item-' + esc(currentCake.cat + currentCake.name));
+    if (itemEl) itemEl.classList.remove('saved');
+    // Xóa dữ liệu trên Supabase
+    const { data: ex } = await db.from('bakery_standards')
+      .select('id').eq('banh_category', currentCake.cat).eq('banh_name', currentCake.name).limit(1);
+    if (ex && ex.length) await db.from('bakery_standards').delete().eq('id', ex[0].id);
   }
 
   async function saveForm() {
@@ -696,6 +716,8 @@
     }
 
     showToast('Đã lưu thành công! ✓', 'success');
+    const itemEl = document.getElementById('item-' + esc(currentCake.cat + currentCake.name));
+    if (itemEl) itemEl.classList.add('saved');
 
     document.getElementById('savedBadge').classList.add('show');
 
