@@ -593,7 +593,7 @@ async function exportExcel() {
       allRows.push([cat.toUpperCase()]);
       allRows.push(['Tên bánh','Hình dáng','Màu sắc vỏ','Trang trí mặt','Cấu trúc ruột','Quy trình','Ghi chú']);
       cats[cat].forEach(r => {
-        const steps = (r.quy_trinh||[]).filter(s=>s).map((s,i)=>`${i+1}. ${s}`).join('\n');
+        const steps = (r.quy_trinh||[]).filter(s=>s).map((s,i)=>`${i+1}. ${s}`).join('\r\n');
         allRows.push([r.banh_name||'',r.hinh_dang||'',r.mau_sac||'',r.trang_tri||'',r.cau_truc||'',steps,r.ghi_chu||'']);
       });
       allRows.push(['']);
@@ -601,12 +601,16 @@ async function exportExcel() {
     const wsAll = XLSX.utils.aoa_to_sheet(allRows);
     wsAll['!cols'] = [{wch:35},{wch:30},{wch:28},{wch:28},{wch:28},{wch:45},{wch:30}];
     XLSX.utils.book_append_sheet(wb, wsAll, 'Tổng hợp');
+    const rangeAll = XLSX.utils.decode_range(wsAll['!ref']);
+    for (let R = 0; R <= rangeAll.e.r; R++) {
+     const cell = wsAll[XLSX.utils.encode_cell({r:R, c:5})];
+     if (cell) { if (!cell.s) cell.s = {}; cell.s.alignment = {wrapText:true, vertical:'top'}; }
+    }
 
     // Sheet riêng từng danh mục
     Object.keys(cats).sort().forEach(cat => {
       const rows = [];
       rows.push([cat.toUpperCase()]);
-      rows.push(['Xuất ngày: ' + new Date().toLocaleDateString('vi-VN')]);
       rows.push(['']);
       cats[cat].forEach((r, idx) => {
         rows.push([`${idx+1}. ${r.banh_name||''}`]);
@@ -633,7 +637,7 @@ async function exportExcel() {
     });
 
     const date = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb, `LP_TieuChuan_${date}.xlsx`);
+    XLSX.writeFile(wb, `LP_TieuChuan.xlsx`, {cellStyles: true});
     showToast(`Đã xuất ${data.length} sản phẩm thành công! ✓`, 'success');
   } catch(e) {
     showToast('Lỗi khi xuất: ' + e.message, 'error');
